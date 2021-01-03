@@ -1,54 +1,70 @@
 # import stuff
 
-# define some functions
-class Program():
+def parse_instructions(raw_instructions):
+    return [{line.split(' ')[0]:{'op':line.split(' ')[1][0], 'val':int(line.split(' ')[1][1:]), 'executed':False}} for line in raw_instructions.split('\n')]
+
+def execute(ins):
+
+    instructions = ins.copy()
+    accumulator = 0
+    run = True
+    line = 0
+
+    while run:
+
+        if line == len(instructions): 
+            return accumulator, True
+
+        ins = instructions[line]
+        for k, v in ins.items():
+            
+            if v['executed'] == True: 
+                return accumulator, False
+            
+            instructions[line][k]['executed'] = True
+            
+            if k == 'nop': 
+                line += 1
+            
+            if k == 'acc':
+                line += 1
+                if v['op'] == '-':
+                    accumulator -= v['val']
+                else: accumulator += v['val']
+            
+            if k == 'jmp':
+                if v['op'] == '-':
+                    line -= v['val']
+                else: line += v['val']
+
+def fix_program(raw_instructions):
+
+    orig_instructions = parse_instructions(raw_instructions)
     
-    def __init__(self, instructions):
-        self.instructions = instructions
-        self.accumulator = 0
+    lines_to_change = []
 
-    def parse_instructions(self):
-        self.instructions = [{line.split(' ')[0]:{'op':line.split(' ')[1][0], 'val':int(line.split(' ')[1][1:]), 'executed':False}} for line in self.instructions.split('\n')]
+    for i, line in enumerate(orig_instructions):
+        for k, v in line.items():
+            if k == 'nop' or k == 'jmp': lines_to_change.append(i)
 
-    def edit_instructions(self):
-        for line in self.instructions:
-            pass
+    new_ins_list = []
+    
+    for line_id in lines_to_change:
 
+        orig_instructions = parse_instructions(raw_instructions)
+                    
+        modified_instructions = orig_instructions.copy()
 
-    def execute(self):
+        for k, v in orig_instructions[line_id].items():
 
-        self.accumulator = 0
-        run = True
-        line = 0
+            if k == 'nop': modified_instructions[line_id] = {'jmp':v}
+            else: modified_instructions[line_id] = {'nop':v}
 
-        while run:
-            if line == len(self.instructions) + 1: 
-                print('ending normal execution')
-                return True
-            ins = self.instructions[line]
-            for k, v in ins.items():
+            new_ins_list.append(modified_instructions)
 
-                #print(line, k, v)
-                
-                if v['executed'] == True: 
-                    print('infinite loop.. terminating')
-                    return False
-                
-                self.instructions[line][k]['executed'] = True
-                
-                if k == 'nop': 
-                    line += 1
-                
-                if k == 'acc':
-                    line += 1
-                    if v['op'] == '-':
-                        self.accumulator -= v['val']
-                    else: self.accumulator += v['val']
-                
-                if k == 'jmp':
-                    if v['op'] == '-':
-                        line -= v['val']
-                    else: line += v['val']
+    for ins in new_ins_list:
+        acc, success = execute(ins)
+        if success: return acc
 
 # unit test
 RAW = """nop +0
@@ -61,23 +77,13 @@ acc +1
 jmp -4
 acc +6"""
 
-p_test = Program(RAW)
-p_test.parse_instructions()
-p_test.execute()
-assert p_test.accumulator == 5
+assert 5, False == execute(parse_instructions(RAW))
+assert fix_program(RAW) == 8
 
 # do the thing
 
 with open('./data/day08.txt') as f:
     raw = f.read()
 
-p = Program(raw)
-p.parse_instructions()
-p.execute()
-print(p.accumulator)
-
-p = Program(raw)
-p.parse_instructions()
-p.edit_instructions()
-p.execute()
-print(p.accumulator)
+print('Part 1:', execute(parse_instructions(raw)))
+print('Part 2:', fix_program(raw))
